@@ -41,6 +41,7 @@ type KanaryDeploymentSpec struct {
 	// same name than the KanaryDeployment. If the deployment not exist, the deployment will be created
 	// with the deployment template present in the KanaryDeployment.
 	DeploymentName string `json:"deploymentName,omitempty"`
+	StatefulSetName string `json:"statefulSetName,omitempty"`
 	// serviceName is the name of the service that governs the associated Deployment.
 	// This service can be empty of not defined, which means that some Kanary feature will not be
 	// applied on the KanaryDeployment.

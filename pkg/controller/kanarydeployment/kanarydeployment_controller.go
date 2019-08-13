@@ -9,6 +9,8 @@ import (
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
+	kuriseclient "github.com/openkruise/kruise/pkg/client"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,6 +130,11 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 	if needsReturn {
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	}
+	
+	statefulset, needsReturn, result, err := r.getStatefulSet(reqLogger, instance)
+	if needsReturn {
+		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
+	}
 
 	//Check scheduling
 	reqLogger.Info("Scheduling")
@@ -150,7 +157,7 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	}
 
-	return strategy.Apply(r.client, reqLogger, instance, deployment, canarydeployment)
+	return strategy.Apply(r.client, reqLogger, instance, deployment, canarydeployment, statefulset)
 }
 
 func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, name string) (*appsv1beta1.Deployment, bool, reconcile.Result, error) {
@@ -203,25 +210,25 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 func (r *ReconcileKanaryDeployment) manageDeploymentCreationFunc(reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, name string, createFunc func(*kanaryv1alpha1.KanaryDeployment, *runtime.Scheme, bool) (*appsv1beta1.Deployment, error)) (*appsv1beta1.Deployment, bool, reconcile.Result, error) {
 	deployment := &appsv1beta1.Deployment{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: kd.Namespace}, deployment)
-	if err != nil && errors.IsNotFound(err) {
-		deployment, err = createFunc(kd, r.scheme, false)
-		if err != nil {
-			reqLogger.Error(err, "failed to create the Deployment artifact")
-			return deployment, true, reconcile.Result{}, err
-		}
-
-		reqLogger.Info("Creating a new Deployment")
-		err = r.client.Create(context.TODO(), deployment)
-		if err != nil {
-			reqLogger.Error(err, "failed to create new Deployment")
-			return deployment, true, reconcile.Result{}, err
-		}
-		// Deployment created successfully - return and requeue
-		return deployment, true, reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, "failed to get Deployment")
-		return deployment, true, reconcile.Result{}, err
-	}
+	// if err != nil && errors.IsNotFound(err) {
+	// 	deployment, err = createFunc(kd, r.scheme, false)
+	// 	if err != nil {
+	// 		reqLogger.Error(err, "failed to create the Deployment artifact")
+	// 		return deployment, true, reconcile.Result{}, err
+	// 	}
+	//
+	// 	reqLogger.Info("Creating a new Deployment")
+	// 	err = r.client.Create(context.TODO(), deployment)
+	// 	if err != nil {
+	// 		reqLogger.Error(err, "failed to create new Deployment")
+	// 		return deployment, true, reconcile.Result{}, err
+	// 	}
+	// 	// Deployment created successfully - return and requeue
+	// 	return deployment, true, reconcile.Result{Requeue: true}, nil
+	// } else if err != nil {
+	// 	reqLogger.Error(err, "failed to get Deployment")
+	// 	return deployment, true, reconcile.Result{}, err
+	// }
 
 	return deployment, false, reconcile.Result{}, err
 }
@@ -230,4 +237,14 @@ func updateKanaryDeploymentStatus(kclient client.Client, reqLogger logr.Logger, 
 	newStatus := kd.Status.DeepCopy()
 	utils.UpdateKanaryDeploymentStatusConditionsFailure(newStatus, now, err)
 	return utils.UpdateKanaryDeploymentStatus(kclient, subResourceDisabled, reqLogger, kd, newStatus, result, err)
+}
+
+
+func (r *ReconcileKanaryDeployment) getStatefulSet(reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment) (*kruisev1alpha1.StatefulSet, bool, reconcile.Result, error) {
+	statefulset, err := kuriseclient.GetGenericClient().KruiseClient.AppsV1alpha1().StatefulSets(kd.Namespace).Get(kd.Spec.StatefulSetName, metav1.GetOptions{})
+	if err != nil {
+		reqLogger.Error(err, "failed to get statefulset")
+		return &kruisev1alpha1.StatefulSet{}, true, reconcile.Result{}, err
+	}
+	return statefulset, false, reconcile.Result{}, err
 }

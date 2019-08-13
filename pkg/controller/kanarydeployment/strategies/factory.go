@@ -10,6 +10,7 @@ import (
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -27,7 +28,7 @@ import (
 
 // Interface represent the strategy interface
 type Interface interface {
-	Apply(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment) (result reconcile.Result, err error)
+	Apply(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment, statefulst *kruisev1alpha1.StatefulSet) (result reconcile.Result, err error)
 }
 
 // NewStrategy return new instance of the strategy
@@ -85,7 +86,7 @@ type strategy struct {
 	subResourceDisabled bool
 }
 
-func (s *strategy) Apply(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment) (result reconcile.Result, err error) {
+func (s *strategy) Apply(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment, statefulst *kruisev1alpha1.StatefulSet) (result reconcile.Result, err error) {
 	var newStatus *kanaryv1alpha1.KanaryDeploymentStatus
 	newStatus, result, err = s.process(kclient, reqLogger, kd, dep, canarydep)
 	utils.UpdateKanaryDeploymentStatusConditionsFailure(newStatus, metav1.Now(), err)

@@ -177,6 +177,7 @@ func GetCanaryDeploymentName(kd *kanaryv1alpha1.KanaryDeployment) string {
 	return fmt.Sprintf("%s-kanary-%s", GetDeploymentName(kd), kd.Name)
 }
 
+
 // GetLabelsForKanaryDeploymentd return labels belonging to the given KanaryDeployment CR name.
 func GetLabelsForKanaryDeploymentd(name string) map[string]string {
 	return map[string]string{
