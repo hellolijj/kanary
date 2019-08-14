@@ -54,8 +54,9 @@ func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kan
 			replicas = specReplicas
 		}
 		
-		if kd.Spec.StatefulSetName != "" {
-			reqLogger.Info("scale stateful set count", replicas)
+		reqLogger.Info("scale statefulnamet: ", kd.Spec.StatefulSetName)
+		if len(kd.Spec.StatefulSetName) > 0 {
+			reqLogger.Info("scale stateful set count: ", replicas)
 			result, err := updateStatefulSetReplicas(reqLogger, sts, replicas)
 			return status, result, err
 		}
