@@ -4,4 +4,4 @@ RUN apk upgrade --update --no-cache
 
 USER nobody
 
-ADD build/_output/bin/kanary /usr/local/bin/kanary
+ADD operator /usr/local/bin/kanary

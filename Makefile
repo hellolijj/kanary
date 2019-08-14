@@ -13,7 +13,7 @@ all: build
 build: ${ARTIFACT}
 
 ${ARTIFACT}: ${SOURCES}
-	CGO_ENABLED=0 GO111MODULE=on go build -mod vendor -i -installsuffix cgo -ldflags '-w' -o ${ARTIFACT} ./cmd/manager/main.go
+	CGO_ENABLED=0 GO111MODULE=on go build -mod vendor -i -installsuffix cgo -ldflags '-w' -o build/${ARTIFACT} ./cmd/manager/main.go
 
 build-plugin: ${ARTIFACT_PLUGIN}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/blang/semver"
 
+	extclient "github.com/openkruise/kruise/pkg/client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
@@ -119,6 +120,13 @@ func main() {
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// Create clientset by client-go
+	err = extclient.NewRegistry(mgr)
+	if err != nil {
+		log.Error(err, "unable to init kruise clientset and informer")
 		os.Exit(1)
 	}
 
