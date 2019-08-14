@@ -170,6 +170,12 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 
 	deployment := &appsv1beta1.Deployment{}
 	result := reconcile.Result{}
+	
+	if kd.Spec.StatefulSetName != "" {
+		reqLogger.Info("todo update statefulset... ")
+		return nil, true, reconcile.Result{}, err
+	}
+	
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: kd.Namespace}, deployment)
 	if err != nil && errors.IsNotFound(err) {
 		deployment, err = utils.NewCanaryDeploymentFromKanaryDeploymentTemplate(r.client, kd, r.scheme, false)
