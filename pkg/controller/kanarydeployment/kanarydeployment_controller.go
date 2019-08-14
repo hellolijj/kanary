@@ -156,7 +156,8 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 	if strategy == nil {
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	}
-
+	
+	reqLogger.Info("Applying")
 	return strategy.Apply(r.client, reqLogger, instance, deployment, canarydeployment, statefulset)
 }
 
@@ -172,16 +173,15 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 	result := reconcile.Result{}
 	
 	if kd.Spec.StatefulSetName != "" {
-		reqLogger.Info("todo update statefulset... ")
 		sts, err := kuriseclient.GetGenericClient().KruiseClient.AppsV1alpha1().StatefulSets(kd.Namespace).Get(kd.Spec.StatefulSetName, metav1.GetOptions{})
 		if err != nil {
 			reqLogger.Error(err, "failed to get statefulset")
-			return nil, true, reconcile.Result{}, err
+			return deployment, true, reconcile.Result{}, err
 		}
 		updateSts := sts.DeepCopy()
 		if kd.Spec.Scale.Static == nil {
 			reqLogger.Error(err, "only support static scale")
-			return nil, true, reconcile.Result{}, err
+			return deployment, true, reconcile.Result{}, err
 		}
 		updateSts.Spec.UpdateStrategy.RollingUpdate.Partition = kd.Spec.Scale.Static.Replicas
 		updateSts.Spec.Template = kd.Spec.Template.Spec.Template
@@ -190,7 +190,7 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 			reqLogger.Error(err, "failed to update Deployment replicas", "Namespace", updateSts.Namespace, "Deployment", updateSts.Name)
 		}
 		
-		return nil, true, reconcile.Result{}, err
+		return deployment, true, reconcile.Result{}, err
 	}
 	
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: kd.Namespace}, deployment)
@@ -233,25 +233,25 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 func (r *ReconcileKanaryDeployment) manageDeploymentCreationFunc(reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, name string, createFunc func(*kanaryv1alpha1.KanaryDeployment, *runtime.Scheme, bool) (*appsv1beta1.Deployment, error)) (*appsv1beta1.Deployment, bool, reconcile.Result, error) {
 	deployment := &appsv1beta1.Deployment{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: kd.Namespace}, deployment)
-	// if err != nil && errors.IsNotFound(err) {
-	// 	deployment, err = createFunc(kd, r.scheme, false)
-	// 	if err != nil {
-	// 		reqLogger.Error(err, "failed to create the Deployment artifact")
-	// 		return deployment, true, reconcile.Result{}, err
-	// 	}
-	//
-	// 	reqLogger.Info("Creating a new Deployment")
-	// 	err = r.client.Create(context.TODO(), deployment)
-	// 	if err != nil {
-	// 		reqLogger.Error(err, "failed to create new Deployment")
-	// 		return deployment, true, reconcile.Result{}, err
-	// 	}
-	// 	// Deployment created successfully - return and requeue
-	// 	return deployment, true, reconcile.Result{Requeue: true}, nil
-	// } else if err != nil {
-	// 	reqLogger.Error(err, "failed to get Deployment")
-	// 	return deployment, true, reconcile.Result{}, err
-	// }
+	if err != nil && errors.IsNotFound(err) {
+		deployment, err = createFunc(kd, r.scheme, false)
+		if err != nil {
+			reqLogger.Error(err, "failed to create the Deployment artifact")
+			return deployment, true, reconcile.Result{}, err
+		}
+	
+		reqLogger.Info("Creating a new Deployment")
+		err = r.client.Create(context.TODO(), deployment)
+		if err != nil {
+			reqLogger.Error(err, "failed to create new Deployment")
+			return deployment, true, reconcile.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return deployment, true, reconcile.Result{Requeue: true}, nil
+	} else if err != nil {
+		reqLogger.Error(err, "failed to get Deployment")
+		return deployment, true, reconcile.Result{}, err
+	}
 
 	return deployment, false, reconcile.Result{}, err
 }
