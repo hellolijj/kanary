@@ -41,13 +41,14 @@ func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kan
 
 	// check if the canary deployment replicas is up to date
 	var specReplicas, canaryReplicas int32
+	
 	if canaryDep.Spec.Replicas != nil {
 		canaryReplicas = *canaryDep.Spec.Replicas
 	}
 	if s.replicas != nil {
 		specReplicas = *s.replicas
 	}
-	reqLogger.Info("scale stateful set count")
+	
 	if canaryReplicas != specReplicas {
 		replicas := int32(1)
 		if s.replicas != nil {
@@ -56,9 +57,8 @@ func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kan
 		
 		reqLogger.Info("scale statefulnamet: ", kd.Spec.StatefulSetName)
 		if len(kd.Spec.StatefulSetName) > 0 {
-			reqLogger.Info("scale stateful set count: ", replicas)
-			result, err := updateStatefulSetReplicas(reqLogger, sts, replicas)
-			return status, result, err
+			reqLogger.Info("stateful set needn't scale", replicas)
+			return status, reconcile.Result{}, nil
 		}
 		
 		result, err := updateDeploymentReplicas(kclient, reqLogger, canaryDep, replicas)
