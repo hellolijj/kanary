@@ -131,6 +131,8 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 	// 	return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	// }
 	
+	var deployment, canarydeployment *appsv1beta1.Deployment
+	
 	statefulset, needsReturn, result, err := r.getStatefulSet(reqLogger, instance)
 	if needsReturn {
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
@@ -141,9 +143,8 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 	if newstatus, schedResult := strategies.ApplyScheduling(reqLogger, instance); newstatus != nil || schedResult != nil {
 		return utils.UpdateKanaryDeploymentStatus(r.client, subResourceDisabled, reqLogger, instance, newstatus, *schedResult, nil)
 	}
-
-	var canarydeployment *appsv1beta1.Deployment
-	canarydeployment, needsReturn, result, err = r.manageCanaryDeploymentCreation(reqLogger, instance, utils.GetCanaryDeploymentName(instance))
+	
+	_, needsReturn, result, err = r.manageCanaryDeploymentCreation(reqLogger, instance, utils.GetCanaryDeploymentName(instance))
 	if needsReturn {
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	}
