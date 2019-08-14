@@ -190,7 +190,7 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 			reqLogger.Error(err, "failed to update Deployment replicas", "Namespace", updateSts.Namespace, "Deployment", updateSts.Name)
 		}
 		
-		return deployment, true, reconcile.Result{}, err
+		return deployment, false, reconcile.Result{}, err
 	}
 	
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: kd.Namespace}, deployment)
