@@ -9,7 +9,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
+	
+	kuriseclient "github.com/openkruise/kruise/pkg/client"
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 	"github.com/amadeusitgroup/kanary/pkg/controller/kanarydeployment/utils"
 )
@@ -30,7 +32,7 @@ type staticImpl struct {
 	replicas *int32
 }
 
-func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
+func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
 	status := &kd.Status
 	// don't update the canary deployment replicas if the KanaryDeployment has failed
 	if utils.IsKanaryDeploymentFailed(status) {
@@ -50,6 +52,12 @@ func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kan
 		if s.replicas != nil {
 			replicas = specReplicas
 		}
+		
+		if kd.Spec.StatefulSetName != "" {
+			result, err := updateStatefulSetReplicas(reqLogger, sts, replicas)
+			return status, result, err
+		}
+		
 		result, err := updateDeploymentReplicas(kclient, reqLogger, canaryDep, replicas)
 		return status, result, err
 	}
@@ -57,7 +65,7 @@ func (s *staticImpl) Scale(kclient client.Client, reqLogger logr.Logger, kd *kan
 	return status, reconcile.Result{}, nil
 }
 
-func (s *staticImpl) Clear(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
+func (s *staticImpl) Clear(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
 	status := &kd.Status
 	return status, reconcile.Result{}, nil
 }
@@ -68,6 +76,17 @@ func updateDeploymentReplicas(kclient client.Client, reqLogger logr.Logger, dep 
 	err := kclient.Update(context.TODO(), updateDep)
 	if err != nil {
 		reqLogger.Error(err, "failed to update Deployment replicas", "Namespace", updateDep.Namespace, "Deployment", updateDep.Name)
+	}
+	return reconcile.Result{Requeue: true}, err
+}
+
+func updateStatefulSetReplicas(reqLogger logr.Logger, sts *kruisev1alpha1.StatefulSet, replicas int32) (reconcile.Result, error) {
+	updateSts := sts.DeepCopy()
+	updateSts.Spec.Replicas = &replicas
+	
+	_, err := kuriseclient.GetGenericClient().KruiseClient.AppsV1alpha1().StatefulSets(sts.Namespace).Update(updateSts)
+	if err != nil {
+		reqLogger.Error(err, "failed to update Deployment replicas", "Namespace", updateSts.Namespace, "Deployment", updateSts.Name)
 	}
 	return reconcile.Result{Requeue: true}, err
 }

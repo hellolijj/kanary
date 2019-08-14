@@ -88,18 +88,18 @@ type strategy struct {
 
 func (s *strategy) Apply(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment, statefulst *kruisev1alpha1.StatefulSet) (result reconcile.Result, err error) {
 	var newStatus *kanaryv1alpha1.KanaryDeploymentStatus
-	newStatus, result, err = s.process(kclient, reqLogger, kd, dep, canarydep)
+	newStatus, result, err = s.process(kclient, reqLogger, kd, dep, canarydep, statefulst)
 	utils.UpdateKanaryDeploymentStatusConditionsFailure(newStatus, metav1.Now(), err)
 	return utils.UpdateKanaryDeploymentStatus(kclient, s.subResourceDisabled, reqLogger, kd, newStatus, result, err) //Try with plain resource
 }
 
-func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
+func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canarydep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (*kanaryv1alpha1.KanaryDeploymentStatus, reconcile.Result, error) {
 
 	reqLogger.Info("Cleanup scale")
 	// First cleanup if needed
 	for impl, activated := range s.scale {
 		if !activated {
-			status, result, err := impl.Clear(kclient, reqLogger, kd, canarydep)
+			status, result, err := impl.Clear(kclient, reqLogger, kd, canarydep, sts)
 			if err != nil {
 				return status, result, fmt.Errorf("error during Clean processing, err: %v", err)
 			}
@@ -127,7 +127,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 	// then scale if need
 	for impl, activated := range s.scale {
 		if activated {
-			status, result, err := impl.Scale(kclient, reqLogger, kd, canarydep)
+			status, result, err := impl.Scale(kclient, reqLogger, kd, canarydep, sts)
 			if err != nil {
 				return status, result, fmt.Errorf("error during Scale processing, err: %v", err)
 			}
