@@ -173,6 +173,23 @@ func (r *ReconcileKanaryDeployment) manageCanaryDeploymentCreation(reqLogger log
 	
 	if kd.Spec.StatefulSetName != "" {
 		reqLogger.Info("todo update statefulset... ")
+		sts, err := kuriseclient.GetGenericClient().KruiseClient.AppsV1alpha1().StatefulSets(kd.Namespace).Get(kd.Spec.StatefulSetName, metav1.GetOptions{})
+		if err != nil {
+			reqLogger.Error(err, "failed to get statefulset")
+			return nil, true, reconcile.Result{}, err
+		}
+		updateSts := sts.DeepCopy()
+		if kd.Spec.Scale.Static == nil {
+			reqLogger.Error(err, "only support static scale")
+			return nil, true, reconcile.Result{}, err
+		}
+		updateSts.Spec.UpdateStrategy.RollingUpdate.Partition = kd.Spec.Scale.Static.Replicas
+		updateSts.Spec.Template = kd.Spec.Template.Spec.Template
+		_, err = kuriseclient.GetGenericClient().KruiseClient.AppsV1alpha1().StatefulSets(sts.Namespace).Update(updateSts)
+		if err != nil {
+			reqLogger.Error(err, "failed to update Deployment replicas", "Namespace", updateSts.Namespace, "Deployment", updateSts.Name)
+		}
+		
 		return nil, true, reconcile.Result{}, err
 	}
 	
