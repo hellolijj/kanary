@@ -144,7 +144,7 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 		return utils.UpdateKanaryDeploymentStatus(r.client, subResourceDisabled, reqLogger, instance, newstatus, *schedResult, nil)
 	}
 	
-	_, needsReturn, result, err = r.manageCanaryDeploymentCreation(reqLogger, instance, utils.GetCanaryDeploymentName(instance))
+	canarydeployment, needsReturn, result, err = r.manageCanaryDeploymentCreation(reqLogger, instance, utils.GetCanaryDeploymentName(instance))
 	if needsReturn {
 		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
 	}
