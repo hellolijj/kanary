@@ -126,10 +126,10 @@ func (r *ReconcileKanaryDeployment) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Check if the deployment already exists, if not create a new one
-	deployment, needsReturn, result, err := r.manageDeploymentCreationFunc(reqLogger, instance, utils.GetDeploymentName(instance), utils.NewDeploymentFromKanaryDeploymentTemplate)
-	if needsReturn {
-		return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
-	}
+	// deployment, needsReturn, result, err := r.manageDeploymentCreationFunc(reqLogger, instance, utils.GetDeploymentName(instance), utils.NewDeploymentFromKanaryDeploymentTemplate)
+	// if needsReturn {
+	// 	return updateKanaryDeploymentStatus(r.client, reqLogger, instance, metav1.Now(), result, err)
+	// }
 	
 	statefulset, needsReturn, result, err := r.getStatefulSet(reqLogger, instance)
 	if needsReturn {
