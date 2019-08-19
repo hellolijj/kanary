@@ -17,7 +17,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
+	
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 	"github.com/amadeusitgroup/kanary/pkg/config"
 	"github.com/amadeusitgroup/kanary/pkg/controller/kanarydeployment/strategies/scale"
@@ -113,7 +113,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 	// First process cleanup
 	for impl, activated := range s.traffic {
 		if !activated {
-			status, result, err := impl.Cleanup(kclient, reqLogger, kd, canarydep)
+			status, result, err := impl.Cleanup(kclient, reqLogger, kd, canarydep, sts)
 			if err != nil {
 				return status, result, fmt.Errorf("error during Traffic Cleanup processing, err: %v", err)
 			}
@@ -141,7 +141,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 	// Then apply Traffic configuration
 	for impl, activated := range s.traffic {
 		if activated {
-			status, result, err := impl.Traffic(kclient, reqLogger, kd, canarydep)
+			status, result, err := impl.Traffic(kclient, reqLogger, kd, canarydep, sts)
 			if err != nil {
 				return status, result, fmt.Errorf("error during Traffic processing, err: %v", err)
 			}

@@ -7,7 +7,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
+	
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 )
 
@@ -22,10 +23,10 @@ type mirrorImpl struct {
 	conf *kanaryv1alpha1.KanaryDeploymentSpecTrafficMirror
 }
 
-func (s *mirrorImpl) Traffic(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment) (status *kanaryv1alpha1.KanaryDeploymentStatus, result reconcile.Result, err error) {
+func (s *mirrorImpl) Traffic(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (status *kanaryv1alpha1.KanaryDeploymentStatus, result reconcile.Result, err error) {
 	return
 }
 
-func (s *mirrorImpl) Cleanup(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment) (status *kanaryv1alpha1.KanaryDeploymentStatus, result reconcile.Result, err error) {
+func (s *mirrorImpl) Cleanup(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, canaryDep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (status *kanaryv1alpha1.KanaryDeploymentStatus, result reconcile.Result, err error) {
 	return
 }
