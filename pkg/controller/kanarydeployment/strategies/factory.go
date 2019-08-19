@@ -192,6 +192,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 
 		// If any strategy fails, the kanary should fail
 		if failed {
+			reqLogger.Info("Check Validation failed")
 			status := kd.Status.DeepCopy()
 			utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.FailedKanaryDeploymentConditionType, corev1.ConditionTrue, fmt.Sprintf("KanaryDeployment failed, %s", failMessages), false)
 			utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.RunningKanaryDeploymentConditionType, corev1.ConditionFalse, "Validation ended with failure detected", false)
@@ -201,6 +202,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 
 		// So there is no failure, does someone force for an early Success ?
 		if forceSucceededNow {
+			reqLogger.Info("Check Validation success")
 			status := kd.Status.DeepCopy()
 			utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.SucceededKanaryDeploymentConditionType, corev1.ConditionTrue, "Forced Success", false)
 			utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.RunningKanaryDeploymentConditionType, corev1.ConditionFalse, "Validation ended with success forced", false)
@@ -209,6 +211,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 
 		// No failure, so if we have not reached the validation deadline, let's requeue for next validation
 		if !validationDeadlineDone && !failed {
+			reqLogger.Info("Check Validation others")
 			d := validation.GetNextValidationCheckDuration(kd)
 			reqLogger.Info("Check Validation", "Periodic-Requeue", d)
 			return &kd.Status, reconcile.Result{RequeueAfter: d}, nil
@@ -231,6 +234,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 
 	//In case of succeeded kanary, we may need to update the deployment
 	if utils.IsKanaryDeploymentSucceeded(&kd.Status) {
+		reqLogger.Info("check kanary success")
 		if kd.Spec.Validations.NoUpdate {
 			return &kd.Status, reconcile.Result{}, nil // nothing else to do... the kanary succeeded, and we are in dry-run mode
 		}
@@ -245,7 +249,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 			return &kd.Status, reconcile.Result{}, nil
 		}
 		// TODO: 回滚
-		reqLogger.Info("check kanary faild, todo go back", "requeue-initial-delay")
+		reqLogger.Info("check kanary failed, todo go back")
 	}
 	
 	
