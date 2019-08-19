@@ -59,7 +59,7 @@ func (k *kanaryServiceImpl) Cleanup(kclient client.Client, reqLogger logr.Logger
 	}
 
 	if (k.conf.Source == kanaryv1alpha1.ServiceKanaryDeploymentSpecTrafficSource || k.conf.Source == kanaryv1alpha1.BothKanaryDeploymentSpecTrafficSource) &&
-		utils.IsKanaryDeploymentFailed(&kd.Status) && canaryDep != nil {
+		utils.IsKanaryDeploymentFailed(&kd.Status) || utils.IsKanaryDeploymentSucceeded(&kd.Status) {
 		// in this case remove the pod from live traffic service.
 		service := &corev1.Service{}
 		err = kclient.Get(context.TODO(), client.ObjectKey{Name: kd.Spec.ServiceName, Namespace: kd.Namespace}, service)
