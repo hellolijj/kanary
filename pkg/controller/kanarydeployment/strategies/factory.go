@@ -1,7 +1,6 @@
 package strategies
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -235,22 +234,21 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 		if kd.Spec.Validations.NoUpdate {
 			return &kd.Status, reconcile.Result{}, nil // nothing else to do... the kanary succeeded, and we are in dry-run mode
 		}
-
-		var newDep *appsv1beta1.Deployment
-		newDep, err := utils.UpdateDeploymentWithKanaryDeploymentTemplate(kd, dep)
-		if err != nil {
-			reqLogger.Error(err, "failed to update the Deployment artifact", "Namespace", newDep.Namespace, "Deployment", newDep.Name)
-			return &kd.Status, reconcile.Result{}, err
-		}
-		err = kclient.Update(context.TODO(), newDep)
-		if err != nil {
-			reqLogger.Error(err, "failed to update the Deployment", "Namespace", newDep.Namespace, "Deployment", newDep.Name, "newDep", *newDep)
-			return &kd.Status, reconcile.Result{}, err
-		}
 		status := kd.Status.DeepCopy()
 		utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.DeploymentUpdatedKanaryDeploymentConditionType, corev1.ConditionTrue, "Deployment updated successfully", false)
 		return status, reconcile.Result{Requeue: true}, nil
 	}
+	
+	//In case of succeeded kanary, we may need to update the deployment
+	if utils.IsKanaryDeploymentFailed(&kd.Status) {
+		if kd.Spec.Validations.NoUpdate {
+			return &kd.Status, reconcile.Result{}, nil
+		}
+		// TODO: 回滚
+		reqLogger.Info("check kanary faild, todo go back", "requeue-initial-delay")
+	}
+	
+	
 	return &kd.Status, reconcile.Result{}, nil
 }
 
