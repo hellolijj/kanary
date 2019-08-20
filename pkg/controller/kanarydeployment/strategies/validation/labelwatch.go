@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 )
 
@@ -29,7 +29,7 @@ type labelWatchImpl struct {
 	config *kanaryv1alpha1.KanaryDeploymentSpecValidationLabelWatch
 }
 
-func (l *labelWatchImpl) Validation(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canaryDep *appsv1beta1.Deployment) (*Result, error) {
+func (l *labelWatchImpl) Validation(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canaryDep *appsv1beta1.Deployment,  sts *kruisev1alpha1.StatefulSet) (*Result, error) {
 	var err error
 	result := &Result{}
 	// By default a Deployement is valid until a Label is discovered on pod or deployment.
