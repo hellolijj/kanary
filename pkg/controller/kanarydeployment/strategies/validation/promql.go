@@ -3,15 +3,13 @@ package validation
 import (
 	"context"
 	"time"
-
 	"github.com/go-logr/logr"
-
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 	"github.com/amadeusitgroup/kanary/pkg/controller/kanarydeployment/anomalydetector"
 )
@@ -112,12 +110,12 @@ func (p *promqlImpl) initAnomalyDetector(kclient client.Client, reqLogger logr.L
 	return nil
 }
 
-func (p *promqlImpl) Validation(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canaryDep *appsv1beta1.Deployment) (*Result, error) {
+func (p *promqlImpl) Validation(kclient client.Client, reqLogger logr.Logger, kd *kanaryv1alpha1.KanaryDeployment, dep, canaryDep *appsv1beta1.Deployment, sts *kruisev1alpha1.StatefulSet) (*Result, error) {
 	var err error
 	result := &Result{}
 
 	//re-init the anomaly detector at each validation in case some settings have changed in the kd
-	if err = p.initAnomalyDetector(kclient, reqLogger, kd, canaryDep.Spec.Selector.MatchLabels); err != nil {
+	if err = p.initAnomalyDetector(kclient, reqLogger, kd, sts.Spec.Selector.MatchLabels); err != nil {
 		return result, err
 	}
 	// By default a Deployement is valid until a Label is discovered on pod or deployment.

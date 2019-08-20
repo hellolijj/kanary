@@ -7,16 +7,16 @@ import (
 
 	"github.com/go-logr/logr"
 
+	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	kruisev1alpha1 "github.com/openkruise/kruise/pkg/apis/apps/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	
+
 	kanaryv1alpha1 "github.com/amadeusitgroup/kanary/pkg/apis/kanary/v1alpha1"
 	"github.com/amadeusitgroup/kanary/pkg/config"
 	"github.com/amadeusitgroup/kanary/pkg/controller/kanarydeployment/strategies/scale"
@@ -175,7 +175,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 		var errs []error
 		for _, validationItem := range s.validations {
 			var result *validation.Result
-			result, err := validationItem.Validation(kclient, reqLogger, kd, dep, canarydep)
+			result, err := validationItem.Validation(kclient, reqLogger, kd, dep, canarydep, sts)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -242,7 +242,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 		utils.UpdateKanaryDeploymentStatusCondition(status, metav1.Now(), kanaryv1alpha1.DeploymentUpdatedKanaryDeploymentConditionType, corev1.ConditionTrue, "Deployment updated successfully", false)
 		return status, reconcile.Result{Requeue: true}, nil
 	}
-	
+
 	//In case of succeeded kanary, we may need to update the deployment
 	if utils.IsKanaryDeploymentFailed(&kd.Status) {
 		if kd.Spec.Validations.NoUpdate {
@@ -251,8 +251,7 @@ func (s *strategy) process(kclient client.Client, reqLogger logr.Logger, kd *kan
 		// TODO: 回滚
 		reqLogger.Info("check kanary failed, todo go back")
 	}
-	
-	
+
 	return &kd.Status, reconcile.Result{}, nil
 }
 
