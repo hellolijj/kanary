@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.10.3 as builder
 
 ADD main.go .
 RUN CGO_ENABLED=0 go build -i -installsuffix cgo -ldflags '-w' -o /simple-server .
